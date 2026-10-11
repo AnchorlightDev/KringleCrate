@@ -4,6 +4,7 @@ import me.benrobson.kringlecrate.KringleCrate;
 import me.benrobson.kringlecrate.utils.DateUtils;
 import me.benrobson.kringlecrate.utils.FormatterUtils;
 import me.benrobson.kringlecrate.utils.ParticipantManager;
+import me.benrobson.kringlecrate.utils.WishlistManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
@@ -18,9 +19,11 @@ import java.util.UUID;
 public class reveal implements CommandExecutor {
 
     private final KringleCrate plugin;
+    private final WishlistManager wishlistManager;
 
     public reveal(KringleCrate plugin) {
         this.plugin = plugin;
+        this.wishlistManager = plugin.getWishlistManager();
     }
 
     @Override
@@ -37,6 +40,22 @@ public class reveal implements CommandExecutor {
             return true;
         }
 
+        if (args.length > 0 && args[0].equalsIgnoreCase("wishlist")) {
+            showRecipientWishlist(player);
+            return true;
+        }
+
+        if (args.length > 0) {
+            player.sendMessage(ChatColor.RED + "Usage: /kc reveal [wishlist]");
+            return true;
+        }
+
+        revealRecipient(player);
+
+        return true;
+    }
+
+    private void revealRecipient(Player player) {
         // Run the recipient lookup asynchronously
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             ParticipantManager participantManager = plugin.getParticipantManager();
@@ -86,7 +105,44 @@ public class reveal implements CommandExecutor {
                             ? recipientPlayer.getName()
                             : "Unknown Player")));
         });
+    }
 
-        return true;
+    private void showRecipientWishlist(Player player) {
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            ParticipantManager participantManager = plugin.getParticipantManager();
+            List<String> participants = participantManager.getParticipants();
+            if (!participants.contains(player.getUniqueId().toString())) {
+                Bukkit.getScheduler().runTask(plugin, () ->
+                        player.sendMessage(ChatColor.RED + "You are not part of the Secret Santa event. Use /kc join.")
+                );
+                return;
+            }
+
+            String recipientUUID = participantManager.getAssignedPlayer(player.getUniqueId().toString());
+
+            if (recipientUUID == null) {
+                Bukkit.getScheduler().runTask(plugin, () ->
+                        player.sendMessage(ChatColor.RED + "You must reveal your recipient before viewing their wishlist.")
+                );
+                return;
+            }
+
+            UUID recipientId = UUID.fromString(recipientUUID);
+            OfflinePlayer recipientPlayer = Bukkit.getOfflinePlayer(recipientId);
+            List<String> wishlist = wishlistManager.getWishlist(recipientId);
+
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                String recipientName = recipientPlayer.getName() != null ? recipientPlayer.getName() : "Unknown Player";
+                if (wishlist.isEmpty()) {
+                    player.sendMessage(ChatColor.AQUA + recipientName + " has not added any wishlist items yet.");
+                    return;
+                }
+
+                player.sendMessage(ChatColor.GREEN + "Wishlist for " + ChatColor.GOLD + recipientName + ChatColor.GREEN + ":");
+                for (String entry : wishlist) {
+                    player.sendMessage(ChatColor.GOLD + " - " + ChatColor.WHITE + entry);
+                }
+            });
+        });
     }
 }

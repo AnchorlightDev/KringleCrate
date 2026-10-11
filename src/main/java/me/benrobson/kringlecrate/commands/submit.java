@@ -2,6 +2,7 @@ package me.benrobson.kringlecrate.commands;
 
 import me.benrobson.kringlecrate.KringleCrate;
 import me.benrobson.kringlecrate.utils.DateUtils;
+import me.benrobson.kringlecrate.utils.EconomyManager;
 import me.benrobson.kringlecrate.utils.FormatterUtils;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -10,10 +11,12 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import java.text.NumberFormat;
+import java.util.Locale;
+
 public class submit implements CommandExecutor {
 
     private final KringleCrate plugin;
-    private DateUtils dateUtils;
 
     public submit(KringleCrate plugin) {
         this.plugin = plugin;
@@ -29,7 +32,6 @@ public class submit implements CommandExecutor {
         Player player = (Player) sender;
         String playerUUID = player.getUniqueId().toString();
 
-        // Check if submissions are not yet open (before the reveal date)
         if (DateUtils.isBeforeRevealDate()) {
             player.sendMessage(ChatColor.RED + "You cannot submit gifts before the reveal date: "
                     + ChatColor.GOLD + FormatterUtils.getFormattedRevealDate());
@@ -41,10 +43,8 @@ public class submit implements CommandExecutor {
             return true;
         }
 
-        // Debug: Log the player's UUID
         plugin.getLogger().info("Submitting gift for player UUID: " + playerUUID);
 
-        // Check if the player has an assigned recipient
         String assignedPlayer = plugin.getParticipantManager().getAssignedPlayer(playerUUID);
         if (assignedPlayer == null) {
             player.sendMessage(ChatColor.RED + "You do not have an assigned recipient!");
@@ -52,8 +52,11 @@ public class submit implements CommandExecutor {
             return true;
         }
 
-        // Debug: Log the assigned player
         plugin.getLogger().info("Assigned recipient for " + playerUUID + ": " + assignedPlayer);
+
+        if (args.length > 0 && args[0].equalsIgnoreCase("currency")) {
+            return handleCurrencySubmission(player, assignedPlayer, args);
+        }
 
         // Check if the player is holding an item
         ItemStack itemInHand = player.getInventory().getItemInMainHand();
@@ -67,15 +70,56 @@ public class submit implements CommandExecutor {
                 ? itemInHand.getItemMeta().getDisplayName()
                 : itemInHand.getType().name().toLowerCase().replace('_', ' ');
 
-        // Store item details in data.yml
         plugin.getGiftManager().saveGiftSubmission(assignedPlayer, player.getName(), itemInHand);
 
-        // Remove the item from the player's hand
         player.getInventory().setItemInMainHand(null);
 
-        // Send a success message with the item's display name
         player.sendMessage(ChatColor.GREEN + "Your gift has been submitted to your recipient: " + ChatColor.AQUA + itemDisplayName + ChatColor.GREEN + "!");
         plugin.getLogger().info("Gift successfully submitted for recipient UUID: " + assignedPlayer);
+        return true;
+    }
+
+    private boolean handleCurrencySubmission(Player player, String assignedPlayer, String[] args) {
+        EconomyManager economyManager = plugin.getEconomyManager();
+        if (economyManager == null || !economyManager.isEconomyAvailable()) {
+            player.sendMessage(ChatColor.RED + "Currency gifts are currently unavailable. Please contact an administrator.");
+            return true;
+        }
+
+        if (args.length < 2) {
+            player.sendMessage(ChatColor.RED + "Usage: /kc submit currency <amount>");
+            return true;
+        }
+
+        double amount;
+        try {
+            amount = Double.parseDouble(args[1]);
+        } catch (NumberFormatException e) {
+            player.sendMessage(ChatColor.RED + "Invalid amount. Please enter a valid number.");
+            return true;
+        }
+
+        if (amount <= 0) {
+            player.sendMessage(ChatColor.RED + "The amount must be greater than zero.");
+            return true;
+        }
+
+        if (!economyManager.getEconomy().has(player, amount)) {
+            player.sendMessage(ChatColor.RED + "You do not have enough funds to send that amount.");
+            return true;
+        }
+
+        if (!economyManager.withdraw(player, amount)) {
+            player.sendMessage(ChatColor.RED + "An error occurred while withdrawing your funds. Please try again later.");
+            return true;
+        }
+
+        plugin.getGiftManager().saveCurrencyGift(assignedPlayer, player.getName(), amount);
+
+        NumberFormat formatter = NumberFormat.getCurrencyInstance(Locale.getDefault());
+        player.sendMessage(ChatColor.GREEN + "You have gifted " + ChatColor.GOLD + formatter.format(amount)
+                + ChatColor.GREEN + " to your recipient!");
+        plugin.getLogger().info("Currency gift submitted for recipient UUID: " + assignedPlayer + " amount: " + amount);
         return true;
     }
 }

@@ -9,6 +9,8 @@ public class KringleCrate extends JavaPlugin {
     private GiftConfigManager giftConfigManager;
     private static GiftManager giftManager;
     private static ParticipantManager participantManager;
+    private static WishlistManager wishlistManager;
+    private static EconomyManager economyManager;
 
     private static FormatterUtils formatterUtils;
     private static DateUtils dateUtils;
@@ -20,12 +22,18 @@ public class KringleCrate extends JavaPlugin {
         giftConfigManager = new GiftConfigManager(this);
         giftManager = new GiftManager(this);
         participantManager = new ParticipantManager(this);
+        wishlistManager = new WishlistManager(this);
+        economyManager = new EconomyManager(this);
         formatterUtils = new FormatterUtils(this);
         dateUtils = new DateUtils(this);
 
+        if (!economyManager.setupEconomy()) {
+            getLogger().warning("[KringleCrate] Vault economy not detected. Currency gifts will be disabled.");
+        }
+
         // Register command and tab completer
         getCommand("kc").setExecutor(new CommandManager(this));
-        getCommand("kc").setTabCompleter(new CommandCompleteManager());
+        getCommand("kc").setTabCompleter(new CommandCompleteManager(this));
     }
 
     public static ConfigManager getConfigManager() {
@@ -42,5 +50,13 @@ public class KringleCrate extends JavaPlugin {
 
     public ParticipantManager getParticipantManager() {
         return participantManager;
+    }
+
+    public WishlistManager getWishlistManager() {
+        return wishlistManager;
+    }
+
+    public EconomyManager getEconomyManager() {
+        return economyManager;
     }
 }

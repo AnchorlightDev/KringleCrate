@@ -5,6 +5,7 @@ import me.benrobson.kringlecrate.commands.join;
 import me.benrobson.kringlecrate.commands.redeem;
 import me.benrobson.kringlecrate.commands.reveal;
 import me.benrobson.kringlecrate.commands.submit;
+import me.benrobson.kringlecrate.commands.wishlist;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -23,7 +24,7 @@ public class CommandManager implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length < 1) {
-            sender.sendMessage(ChatColor.RED + "Usage: /kc <join|reveal|submit|redeem>");
+            sender.sendMessage(ChatColor.RED + "Usage: /kc <join|reveal|submit|redeem|wishlist>");
             return true;
         }
 
@@ -38,8 +39,10 @@ public class CommandManager implements CommandExecutor {
                 return new submit(plugin).onCommand(sender, command, label, Arrays.copyOfRange(args, 1, args.length));
             case "redeem":
                 return new redeem(plugin).onCommand(sender, command, label, Arrays.copyOfRange(args, 1, args.length));
+            case "wishlist":
+                return new wishlist(plugin).onCommand(sender, command, label, Arrays.copyOfRange(args, 1, args.length));
             default:
-                sender.sendMessage(ChatColor.RED + "Unknown subcommand. Usage: /kc <join|reveal|submit|redeem>");
+                sender.sendMessage(ChatColor.RED + "Unknown subcommand. Usage: /kc <join|reveal|submit|redeem|wishlist>");
                 return true;
         }
     }

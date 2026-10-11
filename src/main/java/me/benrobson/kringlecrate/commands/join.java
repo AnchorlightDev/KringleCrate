@@ -15,7 +15,6 @@ public class join implements CommandExecutor {
 
     private final KringleCrate plugin;
     private final ParticipantManager participantManager;
-    private DateUtils dateUtils;
 
     public join(KringleCrate plugin) {
         this.plugin = plugin;
@@ -46,9 +45,11 @@ public class join implements CommandExecutor {
 
         // Add the player as a participant
         participantManager.addParticipant(playerUUID);
+        plugin.getWishlistManager().initializeWishlist(playerUUID);
 
         // Notify the player
-        player.sendMessage(ChatColor.GREEN + "You have successfully joined the Secret Santa event!");
+        player.sendMessage(ChatColor.GREEN + "You have successfully joined the Secret Santa event!"
+                + ChatColor.AQUA + " Use /kc wishlist add <item> to share your wishes.");
         return true;
     }
 }
