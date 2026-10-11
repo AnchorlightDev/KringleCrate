@@ -1,6 +1,6 @@
-package me.benrobson.kringlecrate.utils;
+package dev.anchorlight.kringlecrate.utils;
 
-import me.benrobson.kringlecrate.KringleCrate;
+import dev.anchorlight.kringlecrate.KringleCrate;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 

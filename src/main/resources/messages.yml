@@ -1,0 +1,71 @@
+# KringleCrate player-facing messages.
+# Parsed with Adventure MiniMessage (https://docs.advntr.dev/minimessage/format.html).
+# {0}, {1}, ... are substituted as inert text in call order.
+# A chat prefix can be set here and is prepended to every message from get()/send().
+prefix: ""
+
+# ---- Command router ----
+players-only: "<red>Only players can use this command."
+no-permission: "<red>You do not have permission to do that."
+unknown-subcommand: "<red>Unknown sub-command: <gold>{0}</gold>. Usage: /kc <join|reveal|submit|redeem|wishlist>"
+usage: "<red>Usage: /kc <{0}>"
+
+# ---- /kc join ----
+join:
+  already: "<red>You have already joined the Secret Santa event!"
+  redemption-locked: "<red>You cannot join the Secret Santa event during the redemption period."
+  success: "<green>You have successfully joined the Secret Santa event! <aqua>Use /kc wishlist add [item] to share your wishes."
+
+# ---- /kc reveal ----
+reveal:
+  not-reveal-day: "<red>You cannot reveal your recipient until the reveal day: <gold>{0}</gold>"
+  usage: "<red>Usage: /kc reveal [wishlist]"
+  not-participant: "<red>You are not part of the Secret Santa event. Use /kc join."
+  not-enough-participants: "<red>Not enough participants to assign a recipient!"
+  no-recipient: "<red>No recipient assigned. Please contact an administrator."
+  recipient: "<green>Your assigned recipient is: <gold>{0}</gold>"
+  wishlist-need-reveal: "<red>You must reveal your recipient before viewing their wishlist."
+  wishlist-empty: "<aqua>{0} has not added any wishlist items yet."
+  wishlist-header: "<green>Wishlist for <gold>{0}</gold><green>:"
+  wishlist-entry: "<gold> - <white>{0}"
+
+# ---- /kc submit ----
+submit:
+  before-reveal: "<red>You cannot submit gifts before the reveal date: <gold>{0}</gold>"
+  redemption-started: "<red>You cannot submit any more gifts as the redemption period has now started."
+  no-recipient: "<red>You do not have an assigned recipient!"
+  need-item: "<red>You need to hold an item to submit it as a gift."
+  item-success: "<green>Your gift has been submitted to your recipient: <aqua>{0}</aqua><green>!"
+  currency-unavailable: "<red>Currency gifts are currently unavailable. Please contact an administrator."
+  currency-usage: "<red>Usage: /kc submit currency [amount]"
+  currency-invalid-amount: "<red>Invalid amount. Please enter a valid number."
+  currency-nonpositive: "<red>The amount must be greater than zero."
+  currency-insufficient: "<red>You do not have enough funds to send that amount."
+  currency-withdraw-error: "<red>An error occurred while withdrawing your funds. Please try again later."
+  currency-success: "<green>You have gifted <gold>{0}</gold><green> to your recipient!"
+
+# ---- /kc redeem ----
+redeem:
+  outside-period: "<red>Gifts can only be redeemed during the redemption period: <gold>{0}</gold>"
+  no-gifts: "<red>You have no valid gifts to redeem."
+  not-enough-space: "<red>You don't have enough inventory space for all your gifts."
+  currency-unavailable: "<red>Currency gifts are unavailable right now. Please contact an administrator."
+  currency-received: "<green>You received currency gifts totalling <gold>{0}</gold><green>."
+  currency-error: "<red>An error occurred while redeeming your currency gifts. Please contact an administrator."
+  item-error: "<red>An error occurred while redeeming your gifts. Please contact an administrator."
+  success: "<green>All your gifts have been redeemed!"
+
+# ---- /kc wishlist ----
+wishlist:
+  not-joined: "<red>You must join the Secret Santa event before using a wishlist. Use /kc join."
+  empty: "<aqua>Your wishlist is currently empty. Add items with /kc wishlist add [item]."
+  header: "<green>Your wishlist includes:"
+  entry: "<gold> - <white>{0}"
+  usage: "<red>Usage: /kc wishlist <view|add|remove> [item]"
+  add-usage: "<red>Usage: /kc wishlist add [item description]"
+  add-blank: "<red>Wishlist entry cannot be blank."
+  add-duplicate: "<yellow>That wishlist entry already exists or is invalid."
+  add-success: "<green>Added to your wishlist: <gold>{0}"
+  remove-usage: "<red>Usage: /kc wishlist remove [item description]"
+  remove-nomatch: "<yellow>No wishlist entry matched that description."
+  remove-success: "<green>Removed from your wishlist: <gold>{0}"

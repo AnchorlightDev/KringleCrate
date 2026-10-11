@@ -1,12 +1,11 @@
-package me.benrobson.kringlecrate.commands;
+package dev.anchorlight.kringlecrate.commands;
 
-import me.benrobson.kringlecrate.KringleCrate;
-import me.benrobson.kringlecrate.utils.DateUtils;
-import me.benrobson.kringlecrate.utils.EconomyManager;
-import me.benrobson.kringlecrate.utils.GiftManager;
-import org.bukkit.ChatColor;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
+import dev.anchorlight.kringlecrate.KringleCrate;
+import dev.anchorlight.kringlecrate.utils.DateUtils;
+import dev.anchorlight.kringlecrate.utils.EconomyManager;
+import dev.anchorlight.kringlecrate.utils.GiftManager;
+import dev.anchorlight.stonelib.command.SubCommand;
+import dev.anchorlight.stonelib.message.MessageService;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -16,42 +15,55 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class redeem implements CommandExecutor {
+public class RedeemCommand implements SubCommand {
 
     private final KringleCrate plugin;
-    private final GiftManager giftManager;
 
-    public redeem(KringleCrate plugin) {
+    public RedeemCommand(KringleCrate plugin) {
         this.plugin = plugin;
-        this.giftManager = plugin.getGiftManager();
     }
 
     @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!(sender instanceof Player)) {
-            sender.sendMessage(ChatColor.RED + "Only players can use this command.");
-            return true;
-        }
+    public String getName() {
+        return "redeem";
+    }
 
+    @Override
+    public String getPermission() {
+        return "kringlecrate.redeem";
+    }
+
+    @Override
+    public String getDescription() {
+        return "Redeem the gifts waiting for you during the redemption period.";
+    }
+
+    @Override
+    public boolean playerOnly() {
+        return true;
+    }
+
+    @Override
+    public void execute(CommandSender sender, String[] args) {
         Player player = (Player) sender;
+        MessageService messages = plugin.getMessages();
+        GiftManager giftManager = plugin.getGiftManager();
         UUID playerUUID = player.getUniqueId();
 
         plugin.getLogger().info("[REDEEM] Command triggered by player UUID: " + playerUUID);
 
-        // Check redemption period
         if (!DateUtils.isInRedemptionPeriod()) {
             String redemptionPeriod = DateUtils.getFormattedRedemptionPeriod();
-            player.sendMessage(ChatColor.RED + "Gifts can only be redeemed during the redemption period: "
-                    + ChatColor.GOLD + redemptionPeriod);
+            messages.send(player, "redeem.outside-period", redemptionPeriod);
             plugin.getLogger().info("[REDEEM] Redemption attempt outside period by " + playerUUID + ". Period: " + redemptionPeriod);
-            return true;
+            return;
         }
 
         List<GiftManager.GiftRecord> giftRecords = giftManager.getGiftRecords(playerUUID);
         if (giftRecords.isEmpty()) {
-            player.sendMessage(ChatColor.RED + "You have no valid gifts to redeem.");
+            messages.send(player, "redeem.no-gifts");
             plugin.getLogger().info("[REDEEM] No valid gifts found for player UUID: " + playerUUID);
-            return true;
+            return;
         }
 
         List<ItemStack> itemGifts = giftRecords.stream()
@@ -61,9 +73,9 @@ public class redeem implements CommandExecutor {
 
         int freeSlots = countFreeInventorySlots(player);
         if (freeSlots < itemGifts.size()) {
-            player.sendMessage(ChatColor.RED + "You don't have enough inventory space for all your gifts.");
+            messages.send(player, "redeem.not-enough-space");
             plugin.getLogger().info("[REDEEM] Insufficient inventory space for player UUID: " + playerUUID + ". Needed: " + itemGifts.size() + ", Available: " + freeSlots);
-            return true;
+            return;
         }
 
         double totalCurrency = giftRecords.stream()
@@ -73,9 +85,9 @@ public class redeem implements CommandExecutor {
 
         EconomyManager economyManager = plugin.getEconomyManager();
         if (totalCurrency > 0 && (economyManager == null || !economyManager.isEconomyAvailable())) {
-            player.sendMessage(ChatColor.RED + "Currency gifts are unavailable right now. Please contact an administrator.");
+            messages.send(player, "redeem.currency-unavailable");
             plugin.getLogger().severe("[REDEEM] Currency gifts pending but no economy is available for player UUID: " + playerUUID);
-            return true;
+            return;
         }
 
         addGiftsToInventory(player, itemGifts);
@@ -83,24 +95,21 @@ public class redeem implements CommandExecutor {
         if (totalCurrency > 0) {
             boolean deposited = economyManager.deposit(player, totalCurrency);
             if (!deposited) {
-                player.sendMessage(ChatColor.RED + "An error occurred while redeeming your currency gifts. Please contact an administrator.");
-                return true;
+                messages.send(player, "redeem.currency-error");
+                return;
             }
             NumberFormat formatter = NumberFormat.getCurrencyInstance();
-            player.sendMessage(ChatColor.GREEN + "You received currency gifts totalling " + ChatColor.GOLD
-                    + formatter.format(totalCurrency) + ChatColor.GREEN + ".");
+            messages.send(player, "redeem.currency-received", formatter.format(totalCurrency));
         }
 
         giftManager.clearGifts(playerUUID);
-        player.sendMessage(ChatColor.GREEN + "All your gifts have been redeemed!");
+        messages.send(player, "redeem.success");
         plugin.getLogger().info("[REDEEM] Successfully redeemed gifts for player UUID: " + playerUUID);
-
-        return true;
     }
 
     private int countFreeInventorySlots(Player player) {
         int freeSlots = 0;
-        for (ItemStack item : player.getInventory().getContents()) {
+        for (ItemStack item : player.getInventory().getStorageContents()) {
             if (item == null) freeSlots++;
         }
         return freeSlots;
@@ -114,8 +123,7 @@ public class redeem implements CommandExecutor {
         } catch (Exception e) {
             plugin.getLogger().severe("[REDEEM] Error adding gifts to inventory for player UUID: " + player.getUniqueId());
             plugin.getLogger().severe(e.getMessage());
-            e.printStackTrace();
-            player.sendMessage(ChatColor.RED + "An error occurred while redeeming your gifts. Please contact an administrator.");
+            plugin.getMessages().send(player, "redeem.item-error");
         }
     }
 }
